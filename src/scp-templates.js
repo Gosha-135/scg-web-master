@@ -80,6 +80,7 @@ SCpTemplatesCeateAttributes = {
         scene.selected_attributes.push(edge_role_arc);
 
         scene.selected_attributes.update;
+        scene.selected_attributes_for_command = scene.selected_attributes;
 
         //add attributes to the whole massive of template
         ScgObjectBuilder.scp_objects.push(scene.selected_attributes);
@@ -99,7 +100,7 @@ SCpTemplatesCeateAttributes = {
     paintAttributesForNodes: function(thisAc,obj,x,y){
 
         var scene = thisAc;
-        
+
         scene.selected_attributes = [];
 
         var node_role_fixed = scene.createNode(sc_type_node | sc_type_const | sc_type_node_role, new SCg.Vector3(x+65,y-20,0), "fixed'");
@@ -122,6 +123,8 @@ SCpTemplatesCeateAttributes = {
         scene.appendSelection(edge_role_node);
         scene.selected_attributes.push(node_role_node);
         scene.selected_attributes.push(edge_role_node);
+
+        scene.selected_attributes_for_command = scene.selected_attributes;
 
         //add attributes to the whole massive of template
         ScgObjectBuilder.scp_objects.push(scene.selected_attributes);
