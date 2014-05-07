@@ -1,12 +1,9 @@
-
-
 GwfObjectInfoReader = {
 
     objects_info: { },
     errors: [],
     arcsForTemplate: [],
     nodesForTemplate: [],
-
 
     gwf_type_to_scg_type: {
         "node/-/not_define": sc_type_node,
@@ -52,6 +49,7 @@ GwfObjectInfoReader = {
     },
 
     read: function (strs) {
+
         var xml_doc = (new DOMParser()).parseFromString(strs, "text/xml");
 
         var root = xml_doc.documentElement;
@@ -77,19 +75,17 @@ GwfObjectInfoReader = {
         var contours = this.parseGroupOfElements(static_sector, "contour", false);
         this.forEach(contours, this.parseContour);
 
-
         //nodes
         var nodes = this.parseGroupOfElements(static_sector, "node", false);
         this.forEach(nodes, this.parseNode);
 
+        //buses
+        var buses = this.parseGroupOfElements(static_sector, "bus", false);
+        this.forEach(buses, this.parseBus);
 
         //arcs
         var arcs = this.parseGroupOfElements(static_sector, "arc", false);
         this.forEach(arcs, this.parsePair);
-
-        //buses
-        var buses = this.parseGroupOfElements(static_sector, "bus", false);
-        this.forEach(buses, this.parseBus);
 
         //pairs
         var arcs = this.parseGroupOfElements(static_sector, "pair", false);
@@ -116,27 +112,6 @@ GwfObjectInfoReader = {
         return elements;
     },
 
-    parseArcsForScpProcedure: function (parent, tag_name, idtf,is_required) {
-        this.arcsForTemplate = [];
-        var elements = parent.getElementsByTagName(tag_name);
-
-        if (elements.length == 0 && is_required == true) {
-            this.errors.push("Unnable to find " + tag_name + " tag");
-            return false;
-        }
-
-        for(var i=0;i<elements.length;i++){
-            var parsed_pair = new GwfObjectPair(null);
-
-            parsed_pair.parseObject({gwf_object: elements[i], reader: this});
-
-            if(parsed_pair.attributes['idtf'] == "printEl"){
-                /*var edge = SCg.scene.createGenEl3();//parsed_pair.buildObject({scene:parsed_pair.scene, builder:parsed_pair.builder});
-                this.arcsForTemplate.push(edge); */
-            }
-        }
-    },
-
     parseContour: function (contour) {
         var parsed_contour = new GwfObjectContour(null);
 
@@ -161,14 +136,6 @@ GwfObjectInfoReader = {
 
     },
 
-    parseBus: function (bus){
-        var parsed_bus = new GwfObjectBus(null);
-
-        if (parsed_bus.parseObject({gwf_object: bus, reader: this}) == false)
-            return false;
-        this.objects_info[parsed_bus.id] = parsed_bus;
-    },
-
     parseNode: function (node) {
 
         var parsed_node = new GwfObjectNode(null);
@@ -179,6 +146,14 @@ GwfObjectInfoReader = {
 
         this.objects_info[parsed_node.id] = parsed_node;
 
+    },
+
+    parseBus: function (bus){
+        var parsed_bus = new GwfObjectBus(null);
+
+        if (parsed_bus.parseObject({gwf_object: bus, reader: this}) == false)
+            return false;
+        this.objects_info[parsed_bus.id] = parsed_bus;
     },
 
     fetchAttributes: function (tag_element, required_attrs) {
@@ -218,7 +193,7 @@ GwfObjectInfoReader = {
 
     getTypeCode: function (gfw_type) {
         return this.gwf_type_to_scg_type[gfw_type];
-    },
+    } ,
 
     getArcsForTemplates: function(){
         return this.arcsForTemplate;
@@ -226,11 +201,6 @@ GwfObjectInfoReader = {
 
     setArcsForTemplates: function(arc){
         this.arcsForTemplate.push(arc);
-    },
-
-    deleteArcsNodesForTemplates: function(){
-      this.arcsForTemplate = [];
-        this.nodesForTemplate = [];
     },
 
     getNodesForTemplates: function(){

@@ -1,12 +1,32 @@
-///// nodes
+var GwfObjectController = {
+    x_offset: 0,
+    y_offset: 0,
 
+    fixOffsetOfPoints: function (args) {
+        var x = parseFloat(args.x);
+        var y = parseFloat(args.y);
+
+        if (x < this.x_offset)
+            this.x_offset = x;
+
+        if (y < this.y_offset)
+            this.y_offset = y;
+    },
+
+    getXOffset: function () {
+        return Math.abs(this.x_offset) + 60;
+    },
+
+    getYOffset: function () {
+        return Math.abs(this.y_offset) + 30;
+    }
+}
 
 var GwfObject = function (args) {
 
     this.id = -1;
     this.attributes = {};
     this.required_attrs = [];
-
 
 }
 
@@ -22,6 +42,7 @@ GwfObject.prototype.buildObject = function (args) {
 
 }
 
+
 GwfObject.prototype.parsePoints = function (args) {
 
     var gwf_object = args.gwf_object;
@@ -30,7 +51,9 @@ GwfObject.prototype.parsePoints = function (args) {
     var points = gwf_object.getElementsByTagName("points")[0].getElementsByTagName("point");
     this.attributes.points = [];
     for (var i = 0; i < points.length; i++) {
-        this.attributes.points.push(reader.fetchAttributes(points[i], ["x", "y"]));
+        var point = reader.fetchAttributes(points[i], ["x", "y"]);
+        this.attributes.points.push(point);
+        GwfObjectController.fixOffsetOfPoints({x: point["x"], y: point["y"]});
     }
 }
 
@@ -42,6 +65,7 @@ GwfObject.prototype.fixParent = function (args) {
     if (parent != "0") {
         var parent_object = args.builder.getOrCreate(parent);
         parent_object.addChild(args.scg_object);
+        args.scg_object.update();
         parent_object.update();
     }
 }
@@ -71,6 +95,9 @@ GwfObjectNode.prototype.parseObject = function (args) {
     this.attributes["x"] = parseFloat(this.attributes["x"]);
     this.attributes["y"] = parseFloat(this.attributes["y"]);
 
+    //fixing points
+    GwfObjectController.fixOffsetOfPoints({x: this.attributes["x"], y: this.attributes["y"]});
+
     this.id = this.attributes["id"];
     return this;
 }
@@ -80,14 +107,13 @@ GwfObjectNode.prototype.buildObject = function (args) {
     var scene = args.scene;
     var builder = args.builder;
 
-    var node = scene.createNode(this.attributes["type"], new SCg.Vector3(this.attributes["x"] + 100, this.attributes["y"], 0), this.attributes["idtf"]);
+    var node = scene.createNode(this.attributes["type"], new SCg.Vector3(this.attributes["x"] + GwfObjectController.getXOffset(), this.attributes["y"] + +GwfObjectController.getYOffset(), 0), this.attributes["idtf"]);
 
     args.scg_object = node;
 
     this.fixParent(args);
 
     node.update();
-
     return node;
 }
 
@@ -143,13 +169,13 @@ GwfObjectPair.prototype.buildObject = function (args) {
 
     for (var i = 0; i < edge_points.length; i++) {
         var edge_point = edge_points[i];
-        var point = new SCg.Vector2(parseFloat(edge_point.x) + 100, parseFloat(edge_point.y));
+        var point = new SCg.Vector2(parseFloat(edge_point.x) + GwfObjectController.getXOffset(), parseFloat(edge_point.y) + GwfObjectController.getYOffset());
         points.push(point);
     }
     edge.setPoints(points);
-
+    source.update();
+    target.update();
     edge.update();
-
 
     //checking for what element arc is belong for SCp-templates
     if(this.attributes['idtf'] == "SCpNode"){
@@ -204,15 +230,13 @@ GwfObjectContour.prototype.buildObject = function (args) {
 
         var vertex_y = parseFloat(contour_point.y);
 
-
-        var vertex = new SCg.Vector3(vertex_x + 100, vertex_y, 0);
+        var vertex = new SCg.Vector3(vertex_x + GwfObjectController.getXOffset(), vertex_y + GwfObjectController.getYOffset(), 0);
         verticies.push(vertex);
     }
 
     var contour = new SCg.ModelContour({
         verticies: verticies
     });
-
 
     args.scg_object = contour;
     this.fixParent(args);
@@ -222,7 +246,6 @@ GwfObjectContour.prototype.buildObject = function (args) {
     contour.update();
     return contour;
 }
-
 
 var GwfObjectBus = function (args) {
     GwfObject.call(this, args);
@@ -240,6 +263,13 @@ GwfObjectBus.prototype.parseObject = function (args) {
     if (this.attributes == false)
         return false;
 
+    //fix attrs
+
+    this.attributes["e_x"] = parseFloat(this.attributes["e_x"]);
+    this.attributes["e_y"] = parseFloat(this.attributes["e_y"]);
+
+    GwfObjectController.fixOffsetOfPoints({x: this.attributes["e_x"], y: this.attributes["e_y"]});
+
     this.id = this.attributes['id'];
 
     //bus points
@@ -251,7 +281,6 @@ GwfObjectBus.prototype.parseObject = function (args) {
 GwfObjectBus.prototype.buildObject = function (args) {
     var scene = args.scene;
     var builder = args.builder;
-    ScgObjectBuilder.points_scp_node_bus = [];
 
 
     var bus = new SCg.ModelBus({});
@@ -262,24 +291,25 @@ GwfObjectBus.prototype.buildObject = function (args) {
     var bus_points = this.attributes["points"];
     var points = [];
 
-    for(var i = 0; i < bus_points.length; i++){
+    for (var i = 0; i < bus_points.length; i++) {
         var bus_point = bus_points[i];
-        this.scene.createGenEl3();
-        var point = new SCg.Vector2(parseFloat(bus_point.x) + 100, parseFloat(bus_point.y));
+        var point = new SCg.Vector2(parseFloat(bus_point.x) + GwfObjectController.getXOffset(), parseFloat(bus_point.y) + GwfObjectController.getYOffset());
         points.push(point);
     }
-    points.push(new SCg.Vector2(parseFloat(this.attributes["e_x"]) + 100, parseFloat(this.attributes["e_y"])))
+
+    points.push(new SCg.Vector2(this.attributes["e_x"] + GwfObjectController.getXOffset(), this.attributes["e_y"] + GwfObjectController.getYOffset()))
 
     bus.setPoints(points);
 
     args.scg_object = bus;
     this.fixParent(args);
 
-    bus.update();
-    scene.appendBus(bus);
 
-    ScgObjectBuilder.points_scp_node_bus[0] = parseFloat(this.attributes["e_x"]);
-    ScgObjectBuilder.points_scp_node_bus[1] = parseFloat(this.attributes["e_y"]);
+    scene.appendBus(bus);
+    bus.update();
+
+    ScgObjectBuilder.points_scp_node_bus[0] = parseFloat(this.attributes["e_x"]) - 30;
+    ScgObjectBuilder.points_scp_node_bus[1] = parseFloat(this.attributes["e_y"]) + GwfObjectController.getYOffset();
 
     return bus;
 }
